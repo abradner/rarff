@@ -186,7 +186,7 @@ module Rarff
 
     def assign_or_build_attr(j, attr_type)
       if @attributes[j].is_a?(Attribute)
-        @attributes[j].type = attr_type
+        @attributes[j].type ||= attr_type
       else
         @attributes[j] = Attribute.new("Attr#{j}", attr_type)
       end
