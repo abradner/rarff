@@ -1,7 +1,7 @@
 # See the README file for more information.
 
 require 'test/unit'
-require '../lib/rarff'
+require 'rarff'
 require 'csv'
 
 class TestArffLib < Test::Unit::TestCase
@@ -43,7 +43,7 @@ class TestArffLib < Test::Unit::TestCase
 
   # Test parsing of an arff file.
   def test_arff_parse
-    in_file = './test_arff.arff'
+    in_file = './test/test_arff.arff'
     rel = Rarff::Relation.new
     rel.parse(File.open(in_file).read)
 
@@ -54,7 +54,7 @@ class TestArffLib < Test::Unit::TestCase
 
   # Test parsing of sparse ARFF format
   def test_sparse_arff_parse
-    in_file = './test_sparse_arff.arff'
+    in_file = './test/test_sparse_arff.arff'
     rel = Rarff::Relation.new
     rel.parse(File.open(in_file).read)
 
@@ -70,7 +70,7 @@ class TestArffLib < Test::Unit::TestCase
   end
 
   def test_case_insensitivity
-    in_file = './test_case_arff.arff'
+    in_file = './test/test_case_arff.arff'
     rel = Rarff::Relation.new
     rel.parse(File.open(in_file).read)
 
@@ -79,7 +79,7 @@ class TestArffLib < Test::Unit::TestCase
   end
 
   def test_attributes_keep_their_names
-    in_file = './test_case_arff.arff'
+    in_file = './test/test_case_arff.arff'
     rel = Rarff::Relation.new
     rel.parse(File.open(in_file).read)
 
@@ -89,8 +89,8 @@ class TestArffLib < Test::Unit::TestCase
   end
 
   def test_all_comments_stored
-    in_file = './test_comments_arff.arff'
-    in_comments_csv = './test_comments_raw.csv'
+    in_file = './test/test_comments_arff.arff'
+    in_comments_csv = './test/test_comments_raw.csv'
 
     comments = []
 
@@ -108,7 +108,7 @@ class TestArffLib < Test::Unit::TestCase
 
   def test_input_to_output_match
     #todo
-    #in_file = './test_comments_arff.arff'
+    #in_file = './test/test_comments_arff.arff'
     #rel = Rarff::Relation.new
     #
     #in_file_contents = File.open(in_file).read
