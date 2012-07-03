@@ -66,19 +66,22 @@ module Rarff
       @type_is_nominal = false
       @type = type
 
-      check_nominal()
+      convert_nominal!
     end
 
+    def nominal?
+      @type_is_nominal
+    end
 
     def type=(type)
       @type = type
-      check_nominal()
+      convert_nominal!
     end
 
 
     # Convert string representation of nominal type to array, if necessary
     # TODO: This might falsely trigger on wacky date formats.
-    def check_nominal
+    def convert_nominal!
       if @type =~ /^\s*\{.*(\,.*)+\}\s*$/
         @type_is_nominal = true
         # Example format: "{nom1,nom2, nom3, nom4,nom5 } "
@@ -89,7 +92,7 @@ module Rarff
 
 
     def add_nominal_value(str)
-      if @type_is_nominal == false
+      if @type_is_nominal
         @type = Array.new
       end
 
@@ -98,10 +101,10 @@ module Rarff
 
 
     def to_arff
-      if @type_is_nominal == true
-        ATTRIBUTE_MARKER + " #{@name} #{@type.join(',')}"
+      if @type_is_nominal
+        ATTRIBUTE_MARKER + " #@name #{@type.join(',')}"
       else
-        ATTRIBUTE_MARKER + " #{@name} #{@type}"
+        ATTRIBUTE_MARKER + " #@name #@type"
       end
     end
 
@@ -138,7 +141,7 @@ module Rarff
           @attributes.push(Attribute.new(name, type))
         }
         next if line.my_scan(/^\s*#{DATA_MARKER}/i) { in_data_section = true }
-        next if in_data_section == false ## Below is data section handling
+        next if !in_data_section ## Below is data section handling
                                          #			next if line.gsub(/^\s*(.*)\s*$/, "\\1").my_scan(/^\s*#{SPARSE_ARFF_BEGIN}(.*)#{SPARSE_ARFF_END}\s*$/) { |data|
         next if line.gsub(/^\s*(.*)\s*$/, "\\1").my_scan(/^#{ESC_SPARSE_ARFF_BEGIN}(.*)#{ESC_SPARSE_ARFF_END}$/) { |data|
           # Sparse ARFF
@@ -203,7 +206,7 @@ module Rarff
 
 
     def to_arff
-      RELATION_MARKER + " #{@name}\n" +
+      RELATION_MARKER + " #@name\n" +
           @attributes.map { |attr| attr.to_arff }.join("\n") +
           "\n" +
           DATA_MARKER + "\n" +
