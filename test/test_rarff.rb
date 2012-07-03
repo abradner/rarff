@@ -31,13 +31,16 @@ class TestArffLib < Test::Unit::TestCase
                  [68.1, 'stuff', 728, 'is cool', "1974-02-10 12:12:12"]]
 
     rel = Rarff::Relation.new('MyCoolRelation')
+    rel.attributes << Rarff::Attribute.new("Attr0", Rarff::ATTRIBUTE_NUMERIC)
+    rel.attributes << Rarff::Attribute.new('subject', Rarff::ATTRIBUTE_STRING)
+    rel.attributes << Rarff::Attribute.new('Attr2', Rarff::ATTRIBUTE_NUMERIC)
+    rel.attributes << Rarff::Attribute.new('Attr3', Rarff::ATTRIBUTE_STRING)
+    rel.attributes << Rarff::Attribute.new('birthday', Rarff::ATTRIBUTE_DATE + ' "yyyy-MM-dd HH:mm:ss"')
+
     rel.instances = instances
-    rel.attributes[1].name = 'subject'
-    rel.attributes[4].name = 'birthday'
-    rel.attributes[4].type = 'DATE "yyyy-MM-dd HH:mm:ss"'
 
 #		puts "rel.to_arff:\n(\n#{rel.to_arff}\n)\n"
-    assert_equal(rel.to_arff, arff_file_str, "Arff creation test failed.")
+    assert_equal(arff_file_str, rel.to_arff, "Arff creation test failed.")
   end
 
 
@@ -45,10 +48,10 @@ class TestArffLib < Test::Unit::TestCase
   def test_arff_parse
     in_file = './test/test_arff.arff'
     rel = Rarff::Relation.new
-    rel.parse(File.open(in_file).read)
+    rel.parse(File.open(in_file))
 
-    assert_equal(rel.instances[2][1], 3.2)
-    assert_equal(rel.instances[7][4], 'Iris-setosa')
+    assert_equal(3.2, rel.instances[2][1])
+    assert_equal('Iris-setosa', rel.instances[7][4])
   end
 
 
@@ -56,23 +59,23 @@ class TestArffLib < Test::Unit::TestCase
   def test_sparse_arff_parse
     in_file = './test/test_sparse_arff.arff'
     rel = Rarff::Relation.new
-    rel.parse(File.open(in_file).read)
+    rel.parse(File.open(in_file))
 
-    assert_equal(rel.instances[0].size, 13)
-    assert_equal(rel.instances[0][1], 0)
-    assert_equal(rel.instances[0][3], 7)
-    assert_equal(rel.instances[1][1], 2.4)
-    assert_equal(rel.instances[1][2], 0)
-    assert_equal(rel.instances[1][12], 19)
-    assert_equal(rel.instances[2][6], 6)
-    assert_equal(rel.instances[3][12], 0)
+    assert_equal(13, rel.instances[0].size)
+    assert_equal(0, rel.instances[0][1])
+    assert_equal(7, rel.instances[0][3])
+    assert_equal(2.4, rel.instances[1][1])
+    assert_equal(0, rel.instances[1][2])
+    assert_equal(19, rel.instances[1][12])
+    assert_equal(6, rel.instances[2][6])
+    assert_equal(0, rel.instances[3][12])
 #		puts "\n\nARFF: (\n#{rel.to_arff}\n)"
   end
 
   def test_case_insensitivity
     in_file = './test/test_case_arff.arff'
     rel = Rarff::Relation.new
-    rel.parse(File.open(in_file).read)
+    rel.parse(File.open(in_file))
 
     assert_equal(5, rel.attributes.count, "Incorrect number of attributes found")
 
@@ -81,7 +84,7 @@ class TestArffLib < Test::Unit::TestCase
   def test_attributes_keep_their_names
     in_file = './test/test_case_arff.arff'
     rel = Rarff::Relation.new
-    rel.parse(File.open(in_file).read)
+    rel.parse(File.open(in_file))
 
     assert_equal('left-weight', rel.attributes[0].name, "first attribute not as expected")
     assert_equal('class', rel.attributes[4].name, "last attribute not as expected")
@@ -99,7 +102,7 @@ class TestArffLib < Test::Unit::TestCase
     end
 
     rel = Rarff::Relation.new
-    in_file_contents = File.open(in_file).read
+    in_file_contents = File.open(in_file)
     rel.parse(in_file_contents)
 
     assert_equal(comments.length, rel.comments.length, "Some comments not stored or extra comments stored")
@@ -111,10 +114,10 @@ class TestArffLib < Test::Unit::TestCase
     #in_file = './test/test_comments_arff.arff'
     #rel = Rarff::Relation.new
     #
-    #in_file_contents = File.open(in_file).read
+    #in_file_contents = File.open(in_file)
     #rel.parse(in_file_contents)
     #
-    #assert_equal(rel.to_arff, in_file_contents, "Arff input and output don't match'.")
+    #assert_equal(in_file_contents, rel.to_arff, "Arff input and output don't match'.")
 
   end
 end

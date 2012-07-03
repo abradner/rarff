@@ -10,74 +10,89 @@ module Rarff
       @comments = Array.new
     end
 
+    def parse(arg)
+      if arg.is_a? String
+        arff_io = StringIO.new(arg)
+      elsif arg.is_a?(IO) || arg.is_a?(StringIO)
+        arff_io = arg
+      else
+        raise ArgumentError "Parse takes either an I/O object or a string"
+      end
 
-    def parse(str)
       in_data_section = false
 
       # TODO: Doesn't handle commas in quoted attributes.
-      str.split("\n").each_with_index { |line, idx|
+      arff_io.each { |line|
         next if line =~ /^\s*$/
-        next if line.my_scan(/^\s*#{COMMENT_MARKER}/) { @comments << Comment.new(line.slice(1..-1), idx+1)}
+        line.chomp!
+        next if line.my_scan(/^\s*#{COMMENT_MARKER}/) { @comments << Comment.new(line.slice(1..-1), arff_io.lineno) }
         next if line.my_scan(/^\s*#{RELATION_MARKER}\s*(.*)\s*$/i) { |name| @name = name }
         next if line.my_scan(/^\s*#{ATTRIBUTE_MARKER}\s*([^\s]*)\s+(.*)\s*$/i) { |name, type|
           @attributes.push(Attribute.new(name, type))
         }
         next if line.my_scan(/^\s*#{DATA_MARKER}/i) { in_data_section = true }
         next if !in_data_section ## Below is data section handling
-                                         #			next if line.gsub(/^\s*(.*)\s*$/, "\\1").my_scan(/^\s*#{SPARSE_ARFF_BEGIN}(.*)#{SPARSE_ARFF_END}\s*$/) { |data|
+                                 #			next if line.gsub(/^\s*(.*)\s*$/, "\\1").my_scan(/^\s*#{SPARSE_ARFF_BEGIN}(.*)#{SPARSE_ARFF_END}\s*$/) { |data|
         next if line.gsub(/^\s*(.*)\s*$/, "\\1").my_scan(/^#{ESC_SPARSE_ARFF_BEGIN}(.*)#{ESC_SPARSE_ARFF_END}$/) { |data|
           # Sparse ARFF
           # TODO: Factor duplication with non-sparse data below
-          @instances << expand_sparse(data.first)
-          create_attributes()
+          raw_instance = process_sparse_row(data.first)
+          @instances << type_convert_row(raw_instance)
         }
         next if line.my_scan(/^\s*(.*)\s*$/) { |data|
-          @instances << data.first.split(/,\s*/).map { |field|
-            # Remove outer single quotes on strings, if any ('foo bar' --> foo bar)
-            field.gsub(/^\s*\'(.*)\'\s*$/, "\\1")
-          }
-          create_attributes()
+          raw_instance = process_normal_row(data)
+          @instances << type_convert_row(raw_instance)
         }
+      }
+      #create_attributes()
+
+
+    end
+
+    #TODO refactor this method. don't need another iteration through the instance
+    def process_normal_row(data)
+      data.first.split(/,\s*/).map! { |field|
+        # Remove outer single quotes on strings, if any ('foo bar' --> foo bar)
+        field.gsub(/^\s*\'(.*)\'\s*$/, "\\1")
       }
     end
 
+    def type_convert_row(arr)
 
-    def instances=(instances)
-      @instances = instances
-      create_attributes()
-    end
-
-
-    def create_attributes
-      attr_pass = true
-
-      @instances.each_index { |i|
-        @instances[i].each_index { |j|
-          if @instances[i][j].class != String
-            assign_or_build_attr(j, ATTRIBUTE_NUMERIC) if attr_pass
-          elsif @instances[i][j] =~ /^\-?\d+\.?\d*$/
-            # TODO: Should I have a separate to_i conversion, or is to_f sufficient?
-            @instances[i][j] = @instances[i][j].to_f
-            assign_or_build_attr(j, ATTRIBUTE_NUMERIC) if attr_pass
-          else
-            assign_or_build_attr(j, ATTRIBUTE_STRING) if attr_pass
+      idx = 0
+      arr.map! { |element|
+        if @attributes[idx].nominal?
+          unless element.eql?('?') || @attributes[idx].type.include?(element)
+            raise ArgumentError, "Instance element #{idx} - '#{element.to_s}' - was not valid for this attribute (#{@attributes[idx].name})\n Valid options - #{@attributes[idx].type.inspect}"
           end
-        }
-
-        attr_pass = false
+          out = element
+        else
+          case @attributes[idx].type
+            when ATTRIBUTE_NUMERIC
+              out = element.to_f
+            when ATTRIBUTE_REAL
+              out = element.to_f
+            when ATTRIBUTE_INTEGER
+              out = element.to_i
+            when ATTRIBUTE_STRING
+              out = element
+            when ATTRIBUTE_DATE
+              out = element
+            #Date.new(element) # TODO fix this
+            when /#{ATTRIBUTE_DATE}\s['"][^'"]*['"]/
+              out = element #TODO fix this
+            else
+              raise ArgumentError, "Attribute type unknown - #{@attributes[idx].type}"
+          end
+        end
+        idx+=1
+        out
       }
+      arr
     end
 
 
-    def assign_or_build_attr(j, attr_type)
-      if @attributes[j].is_a?(Attribute)
-        @attributes[j].type ||= attr_type
-      else
-        @attributes[j] = Attribute.new("Attr#{j}", attr_type)
-      end
-    end
-
-    def expand_sparse(str)
+    def process_sparse_row(str)
       arr = Array.new(@attributes.size, 0)
       str.gsub(/^\s*\{(.*)\}\s*$/, "\\1").split(/\s*\,\s*/).map { |pr|
         pra = pr.split(/\s/)
@@ -86,6 +101,9 @@ module Rarff
       arr
     end
 
+    def instances=(instances)
+      @instances = instances
+    end
 
     def to_arff
       RELATION_MARKER + " #@name\n" +
@@ -109,11 +127,8 @@ module Rarff
           }.join("\n")
     end
 
-
     def to_s
       to_arff
     end
-
   end
-
 end

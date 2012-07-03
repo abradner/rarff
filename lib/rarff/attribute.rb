@@ -1,14 +1,12 @@
 module Rarff
   class Attribute
-    attr_accessor :name, :type
+    attr_accessor :name
 
     def initialize(name='', type='')
       @name = name
 
       @type_is_nominal = false
-      @type = type
-
-      convert_nominal!
+      self.type= type
     end
 
     def nominal?
@@ -18,6 +16,11 @@ module Rarff
     def type=(type)
       @type = type
       convert_nominal!
+      @type.sub!(/\w+/) {|m| m.upcase} unless nominal?
+    end
+
+    def type
+      @type
     end
 
 
@@ -27,8 +30,8 @@ module Rarff
       if @type =~ /^\s*\{.*(\,.*)+\}\s*$/
         @type_is_nominal = true
         # Example format: "{nom1,nom2, nom3, nom4,nom5 } "
-        # Split on '{'  ','  or  '}'
-        @type = @type.gsub(/^\s*\{\s*/, '').gsub(/\s*\}\s*$/, '').split(/\s*\,\s*/)
+        # Split on '{'  ','  or  '}' and remove any inner ''s
+        @type = @type.gsub(/^\s*\{\s*/, '').gsub(/\s*\}\s*$/, '').split(/\s*\,\s*/).map! { |el| el.gsub(/^\s*\'(.*)\'\s*$/, "\\1")}
       end
     end
 

@@ -7,6 +7,7 @@
 
 
 module Rarff
+  require "stringio"
   require "rarff/core_ext/string"
   require "rarff/core_ext/enumerable"
   require "rarff/constants"
